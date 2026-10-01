@@ -2,17 +2,73 @@ import copy
 import json
 import os
 import shutil
+import struct
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
+import zlib
 from unittest.mock import patch
 
 import loancli
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class ViewTests(unittest.TestCase):
+    def test_views_use_rendered_pixels_without_renderer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            images = Path(directory) / "images"
+            images.mkdir()
+            pixels = b"".join(bytes([y, x, 127]) for y in range(100) for x in range(10))
+            for page in range(1, 13):
+                (images / f"page-{page:02}.ppm").write_bytes(b"P6\n10 100\n255\n" + pixels)
+            views = Path(directory) / "views"
+            with patch.object(loancli, "render_command", side_effect=AssertionError("must not render regions")):
+                loancli.prepare_views(images, views, None, time.monotonic() + 30)
+            for name, y in [("top", 0), ("middle", 30), ("bottom", 60)]:
+                png = (views / f"page-01-{name}.png").read_bytes()
+                self.assertEqual(struct.unpack(">II", png[16:24]), (10, 40))
+                offset, compressed = 8, bytearray()
+                while offset < len(png):
+                    size = struct.unpack(">I", png[offset:offset + 4])[0]
+                    if png[offset + 4:offset + 8] == b"IDAT":
+                        compressed.extend(png[offset + 8:offset + 8 + size])
+                    offset += size + 12
+                expected = b"".join(b"\0" + pixels[row * 30:(row + 1) * 30] for row in range(y, y + 40))
+                self.assertEqual(zlib.decompress(compressed), expected)
+
+
+class IsolationTests(unittest.TestCase):
+    def test_agy_only_is_wrapped_in_per_process_skill_isolation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home = Path(directory)
+            command = ["/bin/echo", "fixture"]
+            with patch.object(loancli.Path, "home", return_value=home):
+                isolated = loancli.isolate_agy(command)
+            self.assertEqual(isolated[:2], ["/usr/bin/sandbox-exec", "-p"])
+            self.assertEqual(isolated[3:], command)
+            profile = isolated[2]
+            for path in [home / ".gemini/config/skills", home / ".agents/skills",
+                         home / ".gemini/GEMINI.md"]:
+                self.assertIn(str(path), profile)
+            run = subprocess.run(isolated, capture_output=True, text=True)
+            self.assertEqual(run.returncode, 0, run.stderr)
+
+    def test_global_octapowers_files_are_unreadable_in_isolated_process(self):
+        paths = [Path.home() / ".gemini/config/skills/using-superpowers/SKILL.md",
+                 Path.home() / ".agents/skills/using-superpowers/SKILL.md",
+                 Path.home() / ".gemini/GEMINI.md"]
+        for path in paths:
+            self.assertTrue(path.is_file())
+            run = subprocess.run(loancli.isolate_agy(["/bin/cat", str(path)]),
+                                 capture_output=True, text=True)
+            self.assertNotEqual(run.returncode, 0)
+            self.assertIn("Operation not permitted", run.stderr)
+            self.assertEqual(run.stdout, "")
 
 
 def load(name):
@@ -56,6 +112,17 @@ class ValidationTests(unittest.TestCase):
         bad["page_extractions"][0]["borrower_name"]["observations"][0]["evidence_text"] = None
         with self.assertRaises(loancli.CLIError):
             loancli.validate(bad, "extraction")
+
+    def test_unreadable_evidence_is_valid_and_retained_without_votes(self):
+        extraction = copy.deepcopy(self.extraction)
+        item = extraction["page_extractions"][2]["borrower_name"]
+        item.update(status="unreadable", notes="Name remains unclear in supplied views.",
+                    observations=[{"raw_value": None, "evidence_text": None,
+                                   "field_label": None, "notes": "Unreadable name."}])
+        loancli.validate(extraction, "extraction")
+        result = loancli.reconcile(self.classification, extraction)
+        self.assertEqual(len(result["reconciliation"]["borrower_name"]["unreadable_observations"]), 1)
+        self.assertNotIn(3, result["loan_level_fields"]["borrower_name"]["source_pages"])
         bad = copy.deepcopy(self.extraction)
         bad["page_extractions"][0]["borrower_name"]["status"] = "not present"
         with self.assertRaises(loancli.CLIError):
@@ -171,12 +238,13 @@ class CLITests(unittest.TestCase):
         self.work = Path(self.temp.name)
         self.project = self.work / "project"
         self.project.mkdir()
-        for name in ["AREAL_LOAN.pdf", "classification.prompt.txt", "classification.schema.json", "extraction.prompt.txt", "extraction.schema.json", "candidate_classification_labels.txt", "result.json"]:
+        for name in ["AREAL_LOAN.pdf", "prompts/classification.prompt.txt", "schemas/classification.schema.json", "prompts/extraction.prompt.txt", "schemas/extraction.schema.json", "candidate_classification_labels.txt", "result.json"]:
+            (self.project / name).parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, self.project / name)
         fake = self.work / "agy"
         fake.write_text(
             "#!" + sys.executable + "\n"
-            "import json, os, pathlib, sys\n"
+            "import json, os, pathlib, sys, subprocess, time\n"
             "args=sys.argv[1:]\n"
             "assert args[args.index('--model')+1]=='gemini-3.8-flash-low'\n"
             "assert args[args.index('--output-format')+1]=='stream-json'\n"
@@ -189,6 +257,7 @@ class CLITests(unittest.TestCase):
             "assert not any(p.is_symlink() for p in cwd.rglob('*'))\n"
             "images={f'page_images/page-{i:02}.png' for i in range(1,13)}\n"
             "required=images|{f'{kind}.prompt.txt',f'{kind}.schema.json'}\n"
+            "if kind=='extraction': required|={f'page_views/page-{i:02}-{view}.png' for i in range(1,13) for view in ['top','middle','bottom']}\n"
             "required.add('candidate_classification_labels.txt' if kind=='classification' else 'classification-runs/classification-flash-low-ordering-run.json')\n"
             "assert files==required,files\n"
             "assert all((cwd/p).read_bytes().startswith(b'\\x89PNG\\r\\n\\x1a\\n') for p in images)\n"
@@ -200,6 +269,11 @@ class CLITests(unittest.TestCase):
             " assert all(set(p)=={'label','page_number'} for p in c['page_labels'])\n"
             "stream_cwd=os.environ.get('FAKE_CWD',os.getcwd())\n"
             "print(json.dumps({'event':'init','init':{'cwd':stream_cwd}}),flush=True)\n"
+            "if os.environ.get('FAKE_HANG'):\n"
+            " child=subprocess.Popen([sys.executable,'-c','import signal,time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(60)'])\n"
+            " pathlib.Path(os.environ['FAKE_CHILD_PID']).write_text(str(child.pid))\n"
+            " print('fixture timeout stderr',file=sys.stderr,flush=True)\n"
+            " time.sleep(60)\n"
             "print(json.dumps({'event':'step_update','step_update':{'step_type':'tool','tool_name':'view_file','state':'ACTIVE','step_index':1}}),flush=True)\n"
             "if os.environ.get('FAKE_FAILURE'):\n"
             " print('fixture authentication failure',file=sys.stderr)\n"
@@ -211,20 +285,64 @@ class CLITests(unittest.TestCase):
             "print(json.dumps({'event':'result','result':result}),flush=True)\n"
         )
         fake.chmod(0o755)
-        self.env = {**os.environ, "PATH": str(self.work) + os.pathsep + os.environ["PATH"], "FIXTURE_ROOT": str(ROOT)}
+        renderer = self.work / "pdftoppm"
+        renderer.write_text(
+            "#!" + sys.executable + "\n"
+            "import pathlib,struct,sys,zlib\n"
+            "a=sys.argv[1:]; assert a[a.index('-r')+1]=='300'\n"
+            "import os,json\n"
+            "with open(os.environ['RENDER_CALLS'],'a') as log: log.write(json.dumps(a)+'\\n')\n"
+            "def chunk(k,v): return struct.pack('>I',len(v))+k+v+struct.pack('>I',zlib.crc32(k+v))\n"
+            "w,h=100,100\n"
+            "if '-singlefile' in a:\n"
+            " w=int(a[a.index('-W')+1]); h=int(a[a.index('-H')+1])\n"
+            " assert w==100 and h==40 and int(a[a.index('-y')+1]) in [0,30,60]\n"
+            "png=b'\\x89PNG\\r\\n\\x1a\\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',w,h,8,0,0,0,0))+chunk(b'IDAT',zlib.compress((b'\\x00'+b'\\xff'*w)*h))+chunk(b'IEND',b'')\n"
+            "paths=[pathlib.Path(a[-1]+'.png')] if '-singlefile' in a else [pathlib.Path(a[-1]+f'-{i:02}.png') for i in range(1,13)]\n"
+            "for p in paths: p.write_bytes(png)\n"
+            "if '-png' not in a:\n"
+            " for i in range(1,13): pathlib.Path(a[-1]+f'-{i:02}.ppm').write_bytes(b'P6\\n100 100\\n255\\n'+b'\\xff'*30000)\n"
+        )
+        renderer.chmod(0o755)
+        self.env = {**os.environ, "PATH": str(self.work) + os.pathsep + os.environ["PATH"], "FIXTURE_ROOT": str(ROOT), "RENDER_CALLS": str(self.work / "render-calls.jsonl")}
 
-    def run_cli(self, *args, failure=False):
+    def run_cli(self, *args, failure=False, test_timeout=25):
         env = {**self.env, **({"FAKE_FAILURE": "1"} if failure else {})}
         return subprocess.run(
             [sys.executable, "-c", "import sys; from pathlib import Path; import loancli; loancli.ROOT=Path(sys.argv[1]); sys.exit(loancli.main(sys.argv[2:]))", str(self.project), *args],
-            env=env, text=True, capture_output=True, timeout=15,
+            env=env, text=True, capture_output=True, timeout=test_timeout,
         )
+
+    def test_real_poppler_prepares_300_dpi_images_and_fixed_views(self):
+        (self.work / "pdftoppm").unlink()
+        fake = self.work / "agy"
+        script = fake.read_text()
+        script = script.replace("import json, os, pathlib, sys, subprocess, time",
+                                "import json, os, pathlib, sys, subprocess, time, struct")
+        script = script.replace("assert files==required,files", "assert files==required,files\n"
+            "def size(p): return struct.unpack('>II', (cwd/p).read_bytes()[16:24])\n"
+            "assert size('page_images/page-03.png')==(2550,3300)\n"
+            "assert all(size(f'page_views/page-03-{v}.png')==(2550,1320) for v in ['top','middle','bottom'])")
+        fake.write_text(script)
+        classification = self.work / "classification.json"
+        classification.write_text(json.dumps(accepted_classification()))
+        run = self.run_cli("extract", "--classification", str(classification),
+                           "--output", str(self.work / "real-render"), test_timeout=90)
+        self.assertEqual(run.returncode, 0, run.stderr)
+
+    def test_invalid_timeout_is_rejected(self):
+        for value in ["0", "-1", "nan", "inf"]:
+            run = self.run_cli("classify", "--output", str(self.work / "invalid"),
+                               "--timeout", value)
+            self.assertNotEqual(run.returncode, 0)
+            self.assertIn("finite positive", run.stderr)
 
     def test_full_produces_validated_artifacts_and_stream_logs(self):
         output = self.work / "full"
         run = self.run_cli("full", "--output", str(output))
         self.assertEqual(run.returncode, 0, run.stderr)
-        self.assertEqual(json.loads((output / "result.json").read_text()), load("result.json"))
+        expected = {**accepted_classification(), "loan_level_fields": loancli.reconcile(accepted_classification(), load("extraction.json"))["loan_level_fields"]}
+        self.assertEqual(json.loads((output / "result.json").read_text()), expected)
         self.assertEqual((self.project / "result.json").read_bytes(), (output / "result.json").read_bytes())
         for stage in ["classification", "extraction"]:
             self.assertTrue((output / f"{stage}.stream.jsonl").is_file())
@@ -233,6 +351,9 @@ class CLITests(unittest.TestCase):
             self.assert_workspace_cleaned(output, stage)
         directories = [json.loads((output / f"{stage}.stream.jsonl").read_text().splitlines()[0])["init"]["cwd"] for stage in ["classification", "extraction"]]
         self.assertNotEqual(Path(directories[0]).parent, Path(directories[1]).parent)
+        calls = (self.work / "render-calls.jsonl").read_text().splitlines()
+        self.assertEqual(len(calls), 1, "full must render the PDF once, without rendering regions")
+        self.assertFalse(any((self.project / ".temp").iterdir()), "shared preparation must be cleaned")
 
     def assert_workspace_cleaned(self, output, stage):
         init = json.loads((output / f"{stage}.stream.jsonl").read_text().splitlines()[0])
@@ -263,7 +384,32 @@ class CLITests(unittest.TestCase):
         self.assertTrue((output / "classification.stream.jsonl").is_file())
         self.assertFalse((output / "result.json").exists())
         self.assert_workspace_cleaned(output, "classification")
+        self.assertFalse(any((self.project / ".temp").iterdir()))
         self.assertEqual((self.project / "result.json").read_bytes(), original)
+
+    def test_timeout_kills_process_group_preserves_logs_and_root(self):
+        original = (self.project / "result.json").read_bytes()
+        child_pid = self.work / "child.pid"
+        self.env.update(FAKE_HANG="1", FAKE_CHILD_PID=str(child_pid))
+        output = self.work / "timed-out"
+        started = time.monotonic()
+        run = self.run_cli("full", "--output", str(output), "--timeout", "2")
+        self.assertLess(time.monotonic() - started, 12)
+        self.assertNotEqual(run.returncode, 0)
+        self.assertIn("timeout", run.stderr.lower())
+        self.assertIn("Logs:", run.stderr)
+        self.assertIn("fixture timeout stderr", (output / "classification.stderr.log").read_text())
+        self.assert_workspace_cleaned(output, "classification")
+        self.assertFalse((output / "result.json").exists())
+        self.assertEqual((self.project / "result.json").read_bytes(), original)
+        pid = int(child_pid.read_text())
+        for _ in range(20):
+            check = subprocess.run(["ps", "-p", str(pid), "-o", "stat="], capture_output=True, text=True)
+            if check.returncode or check.stdout.strip().startswith("Z"):
+                break
+            time.sleep(0.05)
+        else:
+            self.fail(f"child process {pid} survived timeout cleanup")
 
     def test_wrong_streamed_cwd_fails_and_cleans_temporary_files(self):
         self.env["FAKE_CWD"] = str(ROOT)

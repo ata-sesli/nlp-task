@@ -2,23 +2,27 @@
 
 import argparse
 from collections import defaultdict
+from contextlib import nullcontext
 import json
 import os
 from pathlib import Path
 import queue
 import shutil
 import signal
+import struct
 import subprocess
 import sys
 import tempfile
 import threading
 import time
+import zlib
 
 from jsonschema import Draft202012Validator
 
 
 ROOT = Path(__file__).resolve().parent
 MODEL = "gemini-3.8-flash-low"
+DEFAULT_TIMEOUT = 300
 FIELDS = ("borrower_name", "property_address", "loan_number")
 CONTEXT_PATH = Path(
     "classification-runs/classification-flash-low-ordering-run.json"
@@ -57,7 +61,7 @@ def publish_result(source: Path, target: Path):
 
 
 def validate(data: dict, stage: str):
-    schema = read_json(ROOT / f"{stage}.schema.json")
+    schema = read_json(ROOT / "schemas" / f"{stage}.schema.json")
     error = next(Draft202012Validator(schema).iter_errors(data), None)
     if error:
         location = ".".join(map(str, error.absolute_path)) or "root"
@@ -247,16 +251,96 @@ class StreamParser:
 
 
 def stop_process(process):
-    if process.poll() is None:
+    try:
         os.killpg(process.pid, signal.SIGTERM)
-        try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            os.killpg(process.pid, signal.SIGKILL)
-            process.wait()
+    except ProcessLookupError:
+        pass
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        pass
+    # Children may survive after the group leader exits.
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    process.wait()
 
 
-def run_stage(stage: str, output: Path, classification=None) -> dict:
+def render_command(command, log, deadline):
+    process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT,
+                               start_new_session=True)
+    try:
+        code = process.wait(timeout=max(0.001, deadline - time.monotonic()))
+        if code:
+            raise subprocess.CalledProcessError(code, command)
+    finally:
+        stop_process(process)
+
+
+def read_rendered_pixels(path: Path):
+    """Read Poppler's raw RGB PPM output; no resampling or image library."""
+    with path.open("rb") as image:
+        if image.readline().strip() != b"P6":
+            raise CLIError(f"Invalid rendered image: {path}")
+        width, height = map(int, image.readline().split())
+        if image.readline().strip() != b"255":
+            raise CLIError(f"Unsupported rendered image depth: {path}")
+        pixels = image.read()
+    if width <= 0 or height <= 0 or len(pixels) != width * height * 3:
+        raise CLIError(f"Incomplete rendered image: {path}")
+    return width, height, pixels
+
+
+def write_png(path: Path, width, height, pixels, deadline):
+    if time.monotonic() >= deadline:
+        raise subprocess.TimeoutExpired("image preparation", 0)
+
+    def chunk(kind, data):
+        return (struct.pack(">I", len(data)) + kind + data
+                + struct.pack(">I", zlib.crc32(kind + data)))
+
+    stride = width * 3
+    rows = b"".join(b"\0" + pixels[y * stride:(y + 1) * stride] for y in range(height))
+    path.write_bytes(
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+        + chunk(b"pHYs", struct.pack(">IIB", 11811, 11811, 1))  # 300 DPI
+        + chunk(b"IDAT", zlib.compress(rows, level=1)) + chunk(b"IEND", b""))
+    if time.monotonic() >= deadline:
+        raise subprocess.TimeoutExpired("image preparation", 0)
+
+
+def prepare_views(images: Path, views: Path, log, deadline):
+    """Three full-width 40% bands, with 10% overlap and no resampling."""
+    views.mkdir()
+    for page in range(1, 13):
+        width, height, pixels = read_rendered_pixels(images / f"page-{page:02}.ppm")
+        for name, start, end in (("top", 0, 4), ("middle", 3, 7), ("bottom", 6, 10)):
+            y, bottom = height * start // 10, height * end // 10
+            write_png(views / f"page-{page:02}-{name}.png", width, bottom - y,
+                      pixels[y * width * 3:bottom * width * 3], deadline)
+
+
+def isolate_agy(command):
+    """Exclude global coding skills for this process without changing setup."""
+    sandbox = Path("/usr/bin/sandbox-exec")
+    if sys.platform != "darwin" or not sandbox.is_file():
+        raise CLIError("Per-run skill isolation currently requires macOS sandbox-exec")
+    home = Path.home().resolve()
+    profile = (
+        "(version 1)(allow default)(deny file-read* "
+        f"(subpath {json.dumps(str(home / '.gemini/config/skills'))}) "
+        f"(subpath {json.dumps(str(home / '.agents/skills'))}) "
+        f"(literal {json.dumps(str(home / '.gemini/GEMINI.md'))}))"
+    )
+    return [str(sandbox), "-p", profile, *command]
+
+
+def run_stage(stage: str, output: Path, classification=None,
+              timeout: float = DEFAULT_TIMEOUT, prepared_images: Path | None = None) -> dict:
+    started = time.monotonic()
+    deadline = started + timeout
     executable = shutil.which("agy")
     if executable is None:
         raise CLIError("agy is not on PATH; install and authenticate Antigravity CLI first")
@@ -268,10 +352,10 @@ def run_stage(stage: str, output: Path, classification=None) -> dict:
         "These input instructions replace all PDF-reading, text-extraction,\n"
         "and rendering instructions in the task below. Inspect these images\n"
         "directly; do not search for the PDF or previous outputs elsewhere.\n\n"
-        + (ROOT / f"{stage}.prompt.txt").read_text(encoding="utf-8")
+        + (ROOT / "prompts" / f"{stage}.prompt.txt").read_text(encoding="utf-8")
     )
     (output / f"{stage}.prompt.txt").write_text(prompt, encoding="utf-8")
-    shutil.copyfile(ROOT / f"{stage}.schema.json", output / f"{stage}.schema.json")
+    shutil.copyfile(ROOT / "schemas" / f"{stage}.schema.json", output / f"{stage}.schema.json")
     stream_path = output / f"{stage}.stream.jsonl"
     stderr_path = output / f"{stage}.stderr.log"
     print(f"[{stage}] starting {MODEL}; logs: {stream_path}", file=sys.stderr, flush=True)
@@ -281,16 +365,25 @@ def run_stage(stage: str, output: Path, classification=None) -> dict:
         run_directory = Path(directory)
         workspace = run_directory / stage
         workspace.mkdir()
-        rendered = run_directory / "rendered"
-        rendered.mkdir()
+        rendered = prepared_images if prepared_images is not None else run_directory / "rendered"
+        rendered.mkdir(exist_ok=True)
         render_log_path = output / f"{stage}.render.log"
-        print(f"[{stage}] rendering 12 source pages", file=sys.stderr, flush=True)
         with render_log_path.open("w", encoding="utf-8") as render_log:
             try:
-                subprocess.run(
-                    ["pdftoppm", "-png", "-r", "150", str(ROOT / "AREAL_LOAN.pdf"), str(rendered / "page")],
-                    stdout=render_log, stderr=subprocess.STDOUT, check=True,
-                )
+                if not (rendered / "page-01.png").exists():
+                    print(f"[{stage}] rendering 12 source pages at 300 DPI", file=sys.stderr, flush=True)
+                    render_command(
+                        ["pdftoppm", "-r", "300", str(ROOT / "AREAL_LOAN.pdf"), str(rendered / "page")],
+                        render_log, deadline,
+                    )
+                    for page in range(1, 13):
+                        width, height, pixels = read_rendered_pixels(rendered / f"page-{page:02}.ppm")
+                        write_png(rendered / f"page-{page:02}.png", width, height, pixels, deadline)
+                else:
+                    print(f"[{stage}] reusing shared 300 DPI page images", file=sys.stderr, flush=True)
+                    render_log.write("Reused shared 300 DPI page images; PDF was not rendered again.\n")
+            except subprocess.TimeoutExpired as error:
+                raise CLIError(f"{stage}: hard timeout after {timeout:g}s during page preparation. Logs: {render_log_path}") from error
             except (OSError, subprocess.CalledProcessError) as error:
                 raise CLIError(f"{stage}: page rendering failed: {error}. Logs: {render_log_path}") from error
         images = workspace / "page_images"
@@ -300,6 +393,15 @@ def run_stage(stage: str, output: Path, classification=None) -> dict:
             if not source.is_file():
                 raise CLIError(f"{stage}: rendered physical page {page} is missing")
             shutil.copyfile(source, images / source.name)
+        if stage == "extraction":
+            print(f"[{stage}] preparing three overlapping views per page", file=sys.stderr, flush=True)
+            with render_log_path.open("a", encoding="utf-8") as render_log:
+                try:
+                    prepare_views(rendered, workspace / "page_views", render_log, deadline)
+                except subprocess.TimeoutExpired as error:
+                    raise CLIError(f"{stage}: hard timeout after {timeout:g}s during page preparation. Logs: {render_log_path}") from error
+                except (OSError, subprocess.CalledProcessError) as error:
+                    raise CLIError(f"{stage}: page view preparation failed: {error}. Logs: {render_log_path}") from error
         for suffix in ("prompt.txt", "schema.json"):
             shutil.copyfile(output / f"{stage}.{suffix}", workspace / f"{stage}.{suffix}")
         if stage == "classification":
@@ -315,6 +417,7 @@ def run_stage(stage: str, output: Path, classification=None) -> dict:
                    "--new-project", "--sandbox", "--disable-slash-commands",
                    "--model", MODEL, "--output-format", "stream-json",
                    "--json-schema", str(workspace / f"{stage}.schema.json")]
+        command = isolate_agy(command)
         with stream_path.open("w", encoding="utf-8") as log, stderr_path.open("w", encoding="utf-8") as stderr:
             process = subprocess.Popen(command, cwd=workspace, stdin=subprocess.DEVNULL,
                                        stdout=subprocess.PIPE, stderr=stderr, text=True,
@@ -331,11 +434,14 @@ def run_stage(stage: str, output: Path, classification=None) -> dict:
             reader = threading.Thread(target=read_lines, daemon=True)
             reader.start()
             parser = StreamParser(workspace)
-            started = last_progress = time.monotonic()
+            last_progress = time.monotonic()
             try:
                 while True:
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise CLIError(f"hard timeout after {timeout:g}s")
                     try:
-                        line = lines.get(timeout=15)
+                        line = lines.get(timeout=min(15, remaining))
                     except queue.Empty:
                         line = ""
                     if line is None:
@@ -352,7 +458,11 @@ def run_stage(stage: str, output: Path, classification=None) -> dict:
                         detail = f"tool {tool}" if tool else "working"
                         print(f"[{stage}] {detail} ({int(now - started)}s)", file=sys.stderr, flush=True)
                         last_progress = now
-                envelope = parser.finish(process.wait())
+                try:
+                    code = process.wait(timeout=max(0.001, deadline - time.monotonic()))
+                except subprocess.TimeoutExpired as error:
+                    raise CLIError(f"hard timeout after {timeout:g}s") from error
+                envelope = parser.finish(code)
                 write_json(output / f"{stage}-run.json", envelope)
                 validate(envelope["structured_output"], stage)
                 write_json(output / f"{stage}.json", envelope["structured_output"])
@@ -362,8 +472,12 @@ def run_stage(stage: str, output: Path, classification=None) -> dict:
                 raise CLIError(f"{stage}: {error}. Logs: {stream_path}, {stderr_path}") from error
             finally:
                 stop_process(process)
-                process.stdout.close()
                 reader.join(timeout=5)
+                while not lines.empty():
+                    pending = lines.get_nowait()
+                    if pending:
+                        log.write(pending)
+                process.stdout.close()
 
 
 def main(argv=None) -> int:
@@ -372,21 +486,33 @@ def main(argv=None) -> int:
     for name in ("classify", "extract", "full"):
         command = commands.add_parser(name)
         command.add_argument("--output", type=Path, required=True, help="new or empty output directory")
+        command.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT,
+                             help="hard timeout in seconds per stage, including image preparation (default: 300)")
         if name == "extract":
             command.add_argument("--classification", type=Path, required=True, help="validated classification JSON or successful agy JSON envelope")
     args = parser.parse_args(argv)
+    if not 0 < args.timeout < float("inf"):
+        parser.error("--timeout must be a finite positive number")
     try:
         classification = read_classification(args.classification) if args.command == "extract" else None
         output = args.output.resolve()
         if output.exists() and (not output.is_dir() or any(output.iterdir())):
             raise CLIError(f"Output must be a new or empty directory: {output}")
         output.mkdir(parents=True, exist_ok=True)
-        if args.command in ("classify", "full"):
-            classification = run_stage("classification", output)
-        else:
-            write_json(output / "classification.json", classification)
-        if args.command in ("extract", "full"):
-            extraction = run_stage("extraction", output, classification)
+        preparation = nullcontext(None)
+        if args.command == "full":
+            (ROOT / ".temp").mkdir(exist_ok=True)
+            preparation = tempfile.TemporaryDirectory(dir=ROOT / ".temp", prefix="shared-")
+        with preparation as directory:
+            shared_images = Path(directory) if directory else None
+            if args.command in ("classify", "full"):
+                classification = run_stage("classification", output, timeout=args.timeout,
+                                           prepared_images=shared_images)
+            else:
+                write_json(output / "classification.json", classification)
+            if args.command in ("extract", "full"):
+                extraction = run_stage("extraction", output, classification, timeout=args.timeout,
+                                       prepared_images=shared_images)
         if args.command == "full":
             reconciliation = reconcile(classification, extraction)
             reconciliation["source_artifacts"] = {
