@@ -1,0 +1,149 @@
+{
+  "page_labels": [
+    {
+      "confidence": null,
+      "label": "Property - Tax Record Information Sheet",
+      "notes": "Document title is \"TAX RECORD INFORMATION SHEET\" at top; form identifier is \"GTXI 0817\"; printed page numbering is \"Page 1 of 2\". Belongs to a multi-page document continuing onto physical PDF page 2.",
+      "page_number": 1
+    },
+    {
+      "confidence": null,
+      "label": "Property - Tax Record Information Sheet",
+      "notes": "Form continuation page with form identifier \"GTXI 0817\" and printed page numbering \"Page 2 of 2\". Contains tax fields and signature line for \"SETTLEMENT AGENT\". Follows physical PDF page 1.",
+      "page_number": 2
+    },
+    {
+      "confidence": null,
+      "label": "Title - Signature / Name Affidavit (Ack)",
+      "notes": "Document title is \"SIGNATURE/NAME AFFIDAVIT\" at top; form identifier is \"GSNA 0120\". Complete single-page notarized acknowledgment document.",
+      "page_number": 3
+    },
+    {
+      "confidence": null,
+      "label": "Title - Rider",
+      "notes": "Document title is \"CONDOMINIUM RIDER\"; form identifier is \"Form 3140 07/2021\"; printed page numbering is \"Page 1 of 3\". First page of a 3-page rider spanning physical PDF pages 4 through 6.",
+      "page_number": 4
+    },
+    {
+      "confidence": null,
+      "label": "Title - Rider",
+      "notes": "Continuation of Condominium Rider; form identifier is \"Form 3140 07/2021\"; printed page numbering is \"Page 2 of 3\". Follows physical PDF page 4 and precedes physical PDF page 6.",
+      "page_number": 5
+    },
+    {
+      "confidence": null,
+      "label": "Title - Rider",
+      "notes": "Final page of Condominium Rider; form identifier is \"Form 3140 07/2021\"; printed page numbering is \"Page 3 of 3\". Contains borrower signature line. Follows physical PDF page 5.",
+      "page_number": 6
+    },
+    {
+      "confidence": null,
+      "label": "Lender - Rate Note",
+      "notes": "Document title is \"NOTE\" (multistate fixed rate note); form identifier is \"Form 3200 07/2021\"; printed page numbering is \"Page 1 of 4\". First page in logical and physical PDF order of a 4-page note spanning physical PDF pages 7 through 10.",
+      "page_number": 7
+    },
+    {
+      "confidence": null,
+      "label": "Lender - Rate Note",
+      "notes": "Continuation of fixed rate note; form identifier is \"Form 3200 07/2021\"; printed page numbering is \"Page 2 of 4\". Logical reading order places printed page 2 between printed page 1 (physical PDF page 7) and printed page 3 (physical PDF page 10).",
+      "page_number": 8
+    },
+    {
+      "confidence": null,
+      "label": "Lender - Rate Note",
+      "notes": "Allonge / endorsement page of fixed rate note; form identifier is \"Form 3200 07/2021\"; printed page numbering is \"Page 4 of 4\". Physical PDF position 9 appears before physical PDF position 10, whereas printed page 4 belongs after printed page 3 in logical reading order. Logical reading order of document is physical PDF page 7 (printed page 1), physical PDF page 8 (printed page 2), physical PDF page 10 (printed page 3), and physical PDF page 9 (printed page 4).",
+      "page_number": 9
+    },
+    {
+      "confidence": null,
+      "label": "Lender - Rate Note",
+      "notes": "Signature page of fixed rate note; form identifier is \"Form 3200 07/2021\"; printed page numbering is \"Page 3 of 4\". Physical PDF position 10 appears after physical PDF position 9, whereas printed page 3 belongs before printed page 4 in logical reading order. Logical reading order of document is physical PDF page 7 (printed page 1), physical PDF page 8 (printed page 2), physical PDF page 10 (printed page 3), and physical PDF page 9 (printed page 4).",
+      "page_number": 10
+    },
+    {
+      "confidence": null,
+      "label": "Mortgage - Closing Disclosure - Seller",
+      "notes": "Document title is \"Closing Disclosure\"; section heading is \"SELLER’S TRANSACTION\"; printed page numbering is \"PAGE 1 OF 2\". First page of seller closing disclosure spanning physical PDF pages 11 and 12.",
+      "page_number": 11
+    },
+    {
+      "confidence": null,
+      "label": "Mortgage - Closing Disclosure - Seller",
+      "notes": "Second page of seller closing disclosure; section heading is \"Closing Cost Details\" with \"Seller-Paid\"; form footer is \"CLOSING DISCLOSURE\"; printed page numbering is \"PAGE 2a OF 2\". Follows physical PDF page 11.",
+      "page_number": 12
+    }
+  ],
+  "documents": [
+    {
+      "label": "Property - Tax Record Information Sheet",
+      "pages": [
+        1,
+        2
+      ]
+    },
+    {
+      "label": "Title - Signature / Name Affidavit (Ack)",
+      "pages": [
+        3
+      ]
+    },
+    {
+      "label": "Title - Rider",
+      "pages": [
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "label": "Lender - Rate Note",
+      "pages": [
+        7,
+        8,
+        9,
+        10
+      ]
+    },
+    {
+      "label": "Mortgage - Closing Disclosure - Seller",
+      "pages": [
+        11,
+        12
+      ]
+    }
+  ],
+  "loan_level_fields": {
+    "borrower_name": {
+      "value": "Alya Renard-Van Mercer",
+      "source_pages": [
+        1,
+        3,
+        6,
+        10,
+        11
+      ]
+    },
+    "property_address": {
+      "value": "604 N Crestview Hill Dr Unit 1144, Las Vegas, NV 89139",
+      "source_pages": [
+        4,
+        7,
+        11
+      ]
+    },
+    "loan_number": {
+      "value": "20414784",
+      "source_pages": [
+        1,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
+    }
+  }
+}

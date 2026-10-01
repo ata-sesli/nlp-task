@@ -1,0 +1,391 @@
+{
+  "source_artifacts": {
+    "extraction_run": "extraction-runs/extraction-flash-low-final-run.json",
+    "extraction": "extraction.json",
+    "classification": "classification-runs/classification-flash-low-ordering-run.json"
+  },
+  "normalization_applied": [
+    "Collapse repeated whitespace and line breaks; compare without capitalization differences.",
+    "Reorder unambiguous surname-comma-given-name occurrences; preserve spelling and internal single spaces.",
+    "Ignore address separator commas when comparing otherwise identical address tokens.",
+    "Preserve identifier digits, name spellings, hyphens, unit numbers, and internal word-spacing differences."
+  ],
+  "voting_rule": "Each distinct document contributes at most one vote per candidate. A document containing competing candidates can support each candidate once.",
+  "documents": [
+    {
+      "document_id": "document_1",
+      "label": "Property - Tax Record Information Sheet",
+      "pages": [
+        1,
+        2
+      ]
+    },
+    {
+      "document_id": "document_2",
+      "label": "Title - Signature / Name Affidavit (Ack)",
+      "pages": [
+        3
+      ]
+    },
+    {
+      "document_id": "document_3",
+      "label": "Title - Rider",
+      "pages": [
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "document_id": "document_4",
+      "label": "Lender - Rate Note",
+      "pages": [
+        7,
+        8,
+        9,
+        10
+      ]
+    },
+    {
+      "document_id": "document_5",
+      "label": "Mortgage - Closing Disclosure - Seller",
+      "pages": [
+        11,
+        12
+      ]
+    }
+  ],
+  "loan_level_fields": {
+    "borrower_name": {
+      "value": "Alya Renard-Van Mercer",
+      "source_pages": [
+        1,
+        3,
+        6,
+        10,
+        11
+      ]
+    },
+    "property_address": {
+      "value": "604 N Crestview Hill Dr Unit 1144, Las Vegas, NV 89139",
+      "source_pages": [
+        4,
+        7,
+        11
+      ]
+    },
+    "loan_number": {
+      "value": "20414784",
+      "source_pages": [
+        1,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
+    }
+  },
+  "reconciliation": {
+    "borrower_name": {
+      "selected_normalized_value": "alya renard-van mercer",
+      "rationale": "Selected the unique candidate supported by the most distinct documents: 5. Repeated occurrences within a document add no votes.",
+      "remaining_uncertainty": "Competing observations remain separate: [{\"value\": \"Renard-Van Mercer, Al ya\", \"document_count\": 1, \"source_pages\": [3]}, {\"value\": \"ALJA REGAN-VAN WILSEM\", \"document_count\": 1, \"source_pages\": [3]}]. Their cause and equivalence are not inferred from voting.",
+      "candidates": [
+        {
+          "normalized_value": "alya renard-van mercer",
+          "document_count": 5,
+          "supporting_document_ids": [
+            "document_1",
+            "document_2",
+            "document_3",
+            "document_4",
+            "document_5"
+          ],
+          "source_pages": [
+            1,
+            3,
+            6,
+            10,
+            11
+          ],
+          "observations": [
+            {
+              "page_number": 1,
+              "evidence_text": "BORROWER(S) NAME: Alya Renard-Van Mercer",
+              "field_label": "BORROWER(S) NAME:",
+              "notes": "Name appears with a strike-through line through 'er' in Mercer.",
+              "raw_value": "Alya Renard-Van Mercer"
+            },
+            {
+              "page_number": 3,
+              "evidence_text": "Alya Renard-Van Mercer",
+              "field_label": null,
+              "notes": "Printed name under borrower signature.",
+              "raw_value": "Alya Renard-Van Mercer"
+            },
+            {
+              "page_number": 6,
+              "evidence_text": "Alya Renard-Van Mercer",
+              "field_label": null,
+              "notes": "Printed name under borrower signature.",
+              "raw_value": "Alya Renard-Van Mercer"
+            },
+            {
+              "page_number": 10,
+              "evidence_text": "Alya Renard-Van Mercer",
+              "field_label": null,
+              "notes": "Printed name under borrower signature.",
+              "raw_value": "Alya Renard-Van Mercer"
+            },
+            {
+              "page_number": 11,
+              "evidence_text": "Borrower       Alya Renard-Van Mercer",
+              "field_label": "Borrower",
+              "notes": "",
+              "raw_value": "Alya Renard-Van Mercer"
+            }
+          ]
+        },
+        {
+          "normalized_value": "al ya renard-van mercer",
+          "document_count": 1,
+          "supporting_document_ids": [
+            "document_2"
+          ],
+          "source_pages": [
+            3
+          ],
+          "observations": [
+            {
+              "page_number": 3,
+              "evidence_text": "appeared, Renard-Van Mercer, Al ya",
+              "field_label": null,
+              "notes": "Printed affiant name with a visible space in 'Al ya' beside graphic rules and struck through with a horizontal line.",
+              "raw_value": "Renard-Van Mercer, Al ya"
+            }
+          ]
+        },
+        {
+          "normalized_value": "alja regan-van wilsem",
+          "document_count": 1,
+          "supporting_document_ids": [
+            "document_2"
+          ],
+          "source_pages": [
+            3
+          ],
+          "observations": [
+            {
+              "page_number": 3,
+              "evidence_text": "byALJA\nREGAN-VAN WILSEM.",
+              "field_label": null,
+              "notes": "Name identifying the affiant in notary acknowledgment clause.",
+              "raw_value": "ALJA REGAN-VAN WILSEM"
+            }
+          ]
+        }
+      ],
+      "unreadable_observations": []
+    },
+    "property_address": {
+      "selected_normalized_value": "604 n crestview hill dr unit 1144 las vegas nv 89139",
+      "rationale": "Selected the unique candidate supported by the most distinct documents: 3. Repeated occurrences within a document add no votes.",
+      "remaining_uncertainty": "Competing observations remain separate: [{\"value\": \"604N C restview Hill Dr, Unit 1144 Las Vegas, NV 89139\", \"document_count\": 1, \"source_pages\": [1]}, {\"value\": \"604 N Crest view Hill Dr Unit 1144, Las Vegas, NV 89139\", \"document_count\": 1, \"source_pages\": [3]}]. Their cause and equivalence are not inferred from voting.",
+      "candidates": [
+        {
+          "normalized_value": "604 n crestview hill dr unit 1144 las vegas nv 89139",
+          "document_count": 3,
+          "supporting_document_ids": [
+            "document_3",
+            "document_4",
+            "document_5"
+          ],
+          "source_pages": [
+            4,
+            7,
+            11
+          ],
+          "observations": [
+            {
+              "page_number": 4,
+              "evidence_text": "located at: 604 N Crestview Hill Dr Unit 1144, Las Vegas, NV 89139",
+              "field_label": null,
+              "notes": "",
+              "raw_value": "604 N Crestview Hill Dr Unit 1144, Las Vegas, NV 89139"
+            },
+            {
+              "page_number": 7,
+              "evidence_text": "604 N Crestview Hill Dr Unit 1144, Las Vegas, NV\n89139 [Property Address]",
+              "field_label": "[Property Address]",
+              "notes": "",
+              "raw_value": "604 N Crestview Hill Dr Unit 1144, Las Vegas, NV\n89139"
+            },
+            {
+              "page_number": 11,
+              "evidence_text": "Property                    604 N Crestview Hill\n                            Dr Unit 1144, Las\n                            Vegas, NV 89139",
+              "field_label": "Property",
+              "notes": "",
+              "raw_value": "604 N Crestview Hill\nDr Unit 1144, Las\nVegas, NV 89139"
+            }
+          ]
+        },
+        {
+          "normalized_value": "604n c restview hill dr unit 1144 las vegas nv 89139",
+          "document_count": 1,
+          "supporting_document_ids": [
+            "document_1"
+          ],
+          "source_pages": [
+            1
+          ],
+          "observations": [
+            {
+              "page_number": 1,
+              "evidence_text": "PROPERTY ADDRESS:    604N C restview Hill Dr, Unit 1144\nLas Vegas, NV 89139",
+              "field_label": "PROPERTY ADDRESS:",
+              "notes": "Address contains a visible space in 'C restview'.",
+              "raw_value": "604N C restview Hill Dr, Unit 1144\nLas Vegas, NV 89139"
+            }
+          ]
+        },
+        {
+          "normalized_value": "604 n crest view hill dr unit 1144 las vegas nv 89139",
+          "document_count": 1,
+          "supporting_document_ids": [
+            "document_2"
+          ],
+          "source_pages": [
+            3
+          ],
+          "observations": [
+            {
+              "page_number": 3,
+              "evidence_text": "PROPERTY ADDRESS\n604 N Crest view Hill Dr Unit 1144, Las Vegas, NV 89139",
+              "field_label": "PROPERTY ADDRESS",
+              "notes": "Address contains a visible space in 'Crest view'.",
+              "raw_value": "604 N Crest view Hill Dr Unit 1144, Las Vegas, NV 89139"
+            }
+          ]
+        }
+      ],
+      "unreadable_observations": []
+    },
+    "loan_number": {
+      "selected_normalized_value": "20414784",
+      "rationale": "Selected the unique candidate supported by the most distinct documents: 4. Repeated occurrences within a document add no votes.",
+      "remaining_uncertainty": "Competing observations remain separate: [{\"value\": \"20814794\", \"document_count\": 1, \"source_pages\": [2]}]. Their cause and equivalence are not inferred from voting.",
+      "candidates": [
+        {
+          "normalized_value": "20414784",
+          "document_count": 4,
+          "supporting_document_ids": [
+            "document_1",
+            "document_2",
+            "document_3",
+            "document_4"
+          ],
+          "source_pages": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "observations": [
+            {
+              "page_number": 1,
+              "evidence_text": "LOAN # 20414784",
+              "field_label": "LOAN #",
+              "notes": "",
+              "raw_value": "20414784"
+            },
+            {
+              "page_number": 3,
+              "evidence_text": "LOAN NUMBER\n20414784",
+              "field_label": "LOAN NUMBER",
+              "notes": "",
+              "raw_value": "20414784"
+            },
+            {
+              "page_number": 4,
+              "evidence_text": "LOAN#: 20414784",
+              "field_label": "LOAN#:",
+              "notes": "",
+              "raw_value": "20414784"
+            },
+            {
+              "page_number": 5,
+              "evidence_text": "LOAN#: 20414784",
+              "field_label": "LOAN#:",
+              "notes": "",
+              "raw_value": "20414784"
+            },
+            {
+              "page_number": 6,
+              "evidence_text": "LOAN #: 20414784",
+              "field_label": "LOAN #:",
+              "notes": "",
+              "raw_value": "20414784"
+            },
+            {
+              "page_number": 7,
+              "evidence_text": "LOAN #: 20414784",
+              "field_label": "LOAN #:",
+              "notes": "",
+              "raw_value": "20414784"
+            },
+            {
+              "page_number": 8,
+              "evidence_text": "LOAN #: 20414784",
+              "field_label": "LOAN #:",
+              "notes": "",
+              "raw_value": "20414784"
+            },
+            {
+              "page_number": 9,
+              "evidence_text": "LOAN #: 20414784",
+              "field_label": "LOAN #:",
+              "notes": "",
+              "raw_value": "20414784"
+            },
+            {
+              "page_number": 10,
+              "evidence_text": "LOAN #: 20414784",
+              "field_label": "LOAN #:",
+              "notes": "",
+              "raw_value": "20414784"
+            }
+          ]
+        },
+        {
+          "normalized_value": "20814794",
+          "document_count": 1,
+          "supporting_document_ids": [
+            "document_1"
+          ],
+          "source_pages": [
+            2
+          ],
+          "observations": [
+            {
+              "page_number": 2,
+              "evidence_text": "LOAN#: 20814794",
+              "field_label": "LOAN#:",
+              "notes": "",
+              "raw_value": "20814794"
+            }
+          ]
+        }
+      ],
+      "unreadable_observations": []
+    }
+  }
+}

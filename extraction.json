@@ -1,0 +1,372 @@
+{
+  "page_extractions": [
+    {
+      "borrower_name": {
+        "notes": "",
+        "observations": [
+          {
+            "evidence_text": "BORROWER(S) NAME: Alya Renard-Van Mercer",
+            "field_label": "BORROWER(S) NAME:",
+            "notes": "Name appears with a strike-through line through 'er' in Mercer.",
+            "raw_value": "Alya Renard-Van Mercer"
+          }
+        ],
+        "status": "present"
+      },
+      "loan_number": {
+        "notes": "",
+        "observations": [
+          {
+            "evidence_text": "LOAN # 20414784",
+            "field_label": "LOAN #",
+            "notes": "",
+            "raw_value": "20414784"
+          }
+        ],
+        "status": "present"
+      },
+      "page_number": 1,
+      "property_address": {
+        "notes": "",
+        "observations": [
+          {
+            "evidence_text": "PROPERTY ADDRESS:    604N C restview Hill Dr, Unit 1144\nLas Vegas, NV 89139",
+            "field_label": "PROPERTY ADDRESS:",
+            "notes": "Address contains a visible space in 'C restview'.",
+            "raw_value": "604N C restview Hill Dr, Unit 1144\nLas Vegas, NV 89139"
+          }
+        ],
+        "status": "present"
+      }
+    },
+    {
+      "borrower_name": {
+        "notes": "",
+        "observations": [],
+        "status": "not present"
+      },
+      "loan_number": {
+        "notes": "",
+        "observations": [
+          {
+            "evidence_text": "LOAN#: 20814794",
+            "field_label": "LOAN#:",
+            "notes": "",
+            "raw_value": "20814794"
+          }
+        ],
+        "status": "present"
+      },
+      "page_number": 2,
+      "property_address": {
+        "notes": "",
+        "observations": [],
+        "status": "not present"
+      }
+    },
+    {
+      "borrower_name": {
+        "notes": "A region below the affidavit statement is covered by an overlay.",
+        "observations": [
+          {
+            "evidence_text": "appeared, Renard-Van Mercer, Al ya",
+            "field_label": null,
+            "notes": "Printed affiant name with a visible space in 'Al ya' beside graphic rules and struck through with a horizontal line.",
+            "raw_value": "Renard-Van Mercer, Al ya"
+          },
+          {
+            "evidence_text": "Alya Renard-Van Mercer",
+            "field_label": null,
+            "notes": "Printed name under borrower signature.",
+            "raw_value": "Alya Renard-Van Mercer"
+          },
+          {
+            "evidence_text": "byALJA\nREGAN-VAN WILSEM.",
+            "field_label": null,
+            "notes": "Name identifying the affiant in notary acknowledgment clause.",
+            "raw_value": "ALJA REGAN-VAN WILSEM"
+          }
+        ],
+        "status": "present"
+      },
+      "loan_number": {
+        "notes": "",
+        "observations": [
+          {
+            "evidence_text": "LOAN NUMBER\n20414784",
+            "field_label": "LOAN NUMBER",
+            "notes": "",
+            "raw_value": "20414784"
+          }
+        ],
+        "status": "present"
+      },
+      "page_number": 3,
+      "property_address": {
+        "notes": "",
+        "observations": [
+          {
+            "evidence_text": "PROPERTY ADDRESS\n604 N Crest view Hill Dr Unit 1144, Las Vegas, NV 89139",
+            "field_label": "PROPERTY ADDRESS",
+            "notes": "Address contains a visible space in 'Crest view'.",
+            "raw_value": "604 N Crest view Hill Dr Unit 1144, Las Vegas, NV 89139"
+          }
+        ],
+        "status": "present"
+      }
+    },
+    {
+      "borrower_name": {
+        "notes": "",
+        "observations": [],
+        "status": "not present"
+      },
+      "loan_number": {
+        "notes": "",
+        "observations": [
+          {
+            "evidence_text": "LOAN#: 20414784",
+            "field_label": "LOAN#:",
+            "notes": "",
+            "raw_value": "20414784"
+          }
+        ],
+        "status": "present"
+      },
+      "page_number": 4,
+      "property_address": {
+        "notes": "",
+        "observations": [
+          {
+            "evidence_text": "located at: 604 N Crestview Hill Dr Unit 1144, Las Vegas, NV 89139",
+            "field_label": null,
+            "notes": "",
+            "raw_value": "604 N Crestview Hill Dr Unit 1144, Las Vegas, NV 89139"
+          }
+        ],
+        "status": "present"
+      }
+    },
+    {
+      "borrower_name": {
+        "notes": "",
+        "observations": [],
+        "status": "not present"
+      },
+      "loan_number": {
+        "notes": "",
+        "observations": [
+          {
+            "evidence_text": "LOAN#: 20414784",
+            "field_label": "LOAN#:",
+            "notes": "",
+            "raw_value": "20414784"
+          }
+        ],
+        "status": "present"
+      },
+      "page_number": 5,
+      "property_address": {
+        "notes": "",
+        "observations": [],
+        "status": "not present"
+      }
+    },
+    {
+      "borrower_name": {
+        "notes": "",
+        "observations": [
+          {
+            "evidence_text": "Alya Renard-Van Mercer",
+            "field_label": null,
+            "notes": "Printed name under borrower signature.",
+            "raw_value": "Alya Renard-Van Mercer"
+          }
+        ],
+        "status": "present"
+      },
+      "loan_number": {
+        "notes": "",
+        "observations": [
+          {
+            "evidence_text": "LOAN #: 20414784",
+            "field_label": "LOAN #:",
+            "notes": "",
+            "raw_value": "20414784"
+          }
+        ],
+        "status": "present"
+      },
+      "page_number": 6,
+      "property_address": {
+        "notes": "",
+        "observations": [],
+        "status": "not present"
+      }
+    },
+    {
+      "borrower_name": {
+        "notes": "",
+        "observations": [],
+        "status": "not present"
+      },
+      "loan_number": {
+        "notes": "",
+        "observations": [
+          {
+            "evidence_text": "LOAN #: 20414784",
+            "field_label": "LOAN #:",
+            "notes": "",
+            "raw_value": "20414784"
+          }
+        ],
+        "status": "present"
+      },
+      "page_number": 7,
+      "property_address": {
+        "notes": "",
+        "observations": [
+          {
+            "evidence_text": "604 N Crestview Hill Dr Unit 1144, Las Vegas, NV\n89139 [Property Address]",
+            "field_label": "[Property Address]",
+            "notes": "",
+            "raw_value": "604 N Crestview Hill Dr Unit 1144, Las Vegas, NV\n89139"
+          }
+        ],
+        "status": "present"
+      }
+    },
+    {
+      "borrower_name": {
+        "notes": "",
+        "observations": [],
+        "status": "not present"
+      },
+      "loan_number": {
+        "notes": "",
+        "observations": [
+          {
+            "evidence_text": "LOAN #: 20414784",
+            "field_label": "LOAN #:",
+            "notes": "",
+            "raw_value": "20414784"
+          }
+        ],
+        "status": "present"
+      },
+      "page_number": 8,
+      "property_address": {
+        "notes": "",
+        "observations": [],
+        "status": "not present"
+      }
+    },
+    {
+      "borrower_name": {
+        "notes": "",
+        "observations": [],
+        "status": "not present"
+      },
+      "loan_number": {
+        "notes": "",
+        "observations": [
+          {
+            "evidence_text": "LOAN #: 20414784",
+            "field_label": "LOAN #:",
+            "notes": "",
+            "raw_value": "20414784"
+          }
+        ],
+        "status": "present"
+      },
+      "page_number": 9,
+      "property_address": {
+        "notes": "",
+        "observations": [],
+        "status": "not present"
+      }
+    },
+    {
+      "borrower_name": {
+        "notes": "",
+        "observations": [
+          {
+            "evidence_text": "Alya Renard-Van Mercer",
+            "field_label": null,
+            "notes": "Printed name under borrower signature.",
+            "raw_value": "Alya Renard-Van Mercer"
+          }
+        ],
+        "status": "present"
+      },
+      "loan_number": {
+        "notes": "",
+        "observations": [
+          {
+            "evidence_text": "LOAN #: 20414784",
+            "field_label": "LOAN #:",
+            "notes": "",
+            "raw_value": "20414784"
+          }
+        ],
+        "status": "present"
+      },
+      "page_number": 10,
+      "property_address": {
+        "notes": "",
+        "observations": [],
+        "status": "not present"
+      }
+    },
+    {
+      "borrower_name": {
+        "notes": "",
+        "observations": [
+          {
+            "evidence_text": "Borrower       Alya Renard-Van Mercer",
+            "field_label": "Borrower",
+            "notes": "",
+            "raw_value": "Alya Renard-Van Mercer"
+          }
+        ],
+        "status": "present"
+      },
+      "loan_number": {
+        "notes": "",
+        "observations": [],
+        "status": "not present"
+      },
+      "page_number": 11,
+      "property_address": {
+        "notes": "",
+        "observations": [
+          {
+            "evidence_text": "Property                    604 N Crestview Hill\n                            Dr Unit 1144, Las\n                            Vegas, NV 89139",
+            "field_label": "Property",
+            "notes": "",
+            "raw_value": "604 N Crestview Hill\nDr Unit 1144, Las\nVegas, NV 89139"
+          }
+        ],
+        "status": "present"
+      }
+    },
+    {
+      "borrower_name": {
+        "notes": "",
+        "observations": [],
+        "status": "not present"
+      },
+      "loan_number": {
+        "notes": "",
+        "observations": [],
+        "status": "not present"
+      },
+      "page_number": 12,
+      "property_address": {
+        "notes": "",
+        "observations": [],
+        "status": "not present"
+      }
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "type": "object",
+  "properties": {
+    "page_extractions": {
+      "type": "array",
+      "description": "One entry per physical PDF page, in ascending order.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "page_number": { "type": "integer" },
+          "borrower_name": { "$ref": "#/$defs/field_result" },
+          "property_address": { "$ref": "#/$defs/field_result" },
+          "loan_number": { "$ref": "#/$defs/field_result" }
+        },
+        "required": [
+          "page_number",
+          "borrower_name",
+          "property_address",
+          "loan_number"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["page_extractions"],
+  "additionalProperties": false,
+  "$defs": {
+    "field_result": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["present", "not present", "unreadable"],
+          "description": "Present means at least one readable value; unreadable includes an inspection failure explained in notes."
+        },
+        "observations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/observation" }
+        },
+        "notes": {
+          "type": "string",
+          "description": "Field-level ambiguity, blank-field explanation, or inspection failure; empty if unnecessary."
+        }
+      },
+      "required": ["status", "observations", "notes"],
+      "additionalProperties": false
+    },
+    "observation": {
+      "type": "object",
+      "properties": {
+        "raw_value": {
+          "type": ["string", "null"],
+          "description": "Literal value transcribed from the page; null if unreadable."
+        },
+        "evidence_text": {
+          "type": ["string", "null"],
+          "description": "Exact supporting quotation from this page; null only if none is readable."
+        },
+        "field_label": {
+          "type": ["string", "null"],
+          "description": "Exact visible field label, or null when absent or unreadable."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Role such as borrower alias, ambiguity, or supporting cross-page context."
+        }
+      },
+      "required": ["raw_value", "evidence_text", "field_label", "notes"],
+      "additionalProperties": false
+    }
+  }
+}

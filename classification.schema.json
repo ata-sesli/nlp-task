@@ -1,0 +1,51 @@
+{
+  "type": "object",
+  "properties": {
+    "page_labels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "page_number": { "type": "integer" },
+          "label": { "$ref": "#/$defs/document_label" },
+          "confidence": { "type": "null" },
+          "notes": {
+            "type": "string",
+            "description": "Supporting evidence and any classification or grouping uncertainty."
+          }
+        },
+        "required": ["page_number", "label", "confidence", "notes"],
+        "additionalProperties": false
+      }
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": { "$ref": "#/$defs/document_label" },
+          "pages": {
+            "type": "array",
+            "items": { "type": "integer" }
+          }
+        },
+        "required": ["label", "pages"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["page_labels", "documents"],
+  "additionalProperties": false,
+  "$defs": {
+    "document_label": {
+      "type": "string",
+      "enum": [
+        "Mortgage - Closing Disclosure - Seller",
+        "Lender - Rate Note",
+        "Title - Rider",
+        "Property - Tax Record Information Sheet",
+        "Title - Signature / Name Affidavit (Ack)"
+      ]
+    }
+  }
+}
