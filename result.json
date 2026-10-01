@@ -1,76 +1,76 @@
 {
   "page_labels": [
     {
-      "confidence": null,
+      "page_number": 1,
       "label": "Property - Tax Record Information Sheet",
-      "notes": "Document titled \"TAX RECORD INFORMATION SHEET\" with form identifier \"GTXI 0817\" and printed numbering \"Page 1 of 2\". Forms a multi-page document with physical PDF page 2.",
-      "page_number": 1
+      "confidence": null,
+      "notes": "Title 'TAX RECORD INFORMATION SHEET'"
     },
     {
-      "confidence": null,
+      "page_number": 2,
       "label": "Property - Tax Record Information Sheet",
-      "notes": "Continuation page with form identifier \"GTXI 0817\", section heading \"SETTLEMENT AGENT\", and printed numbering \"Page 2 of 2\", completing the document started on physical PDF page 1.",
-      "page_number": 2
+      "confidence": null,
+      "notes": "Continuation of 'TAX RECORD INFORMATION SHEET' from page 1"
     },
     {
-      "confidence": null,
+      "page_number": 3,
       "label": "Title - Signature / Name Affidavit (Ack)",
-      "notes": "Document titled \"SIGNATURE/NAME AFFIDAVIT\" with form identifier \"GSNA 0120\" and notary acknowledgment block. Single-page document without printed page numbers.",
-      "page_number": 3
+      "confidence": null,
+      "notes": "Title 'SIGNATURE/NAME AFFIDAVIT'"
     },
     {
-      "confidence": null,
+      "page_number": 4,
       "label": "Title - Rider",
-      "notes": "Document titled \"CONDOMINIUM RIDER\" with form identifier \"Form 3140 07/2021\", rider subtitle \"MULTISTATE CONDOMINIUM RIDER -- Single Family -- Fannie Mae/Freddie Mac UNIFORM INSTRUMENT\", and printed numbering \"Page 1 of 3\". Forms a 3-page document with physical PDF pages 5 and 6.",
-      "page_number": 4
+      "confidence": null,
+      "notes": "Title 'CONDOMINIUM RIDER'"
     },
     {
-      "confidence": null,
+      "page_number": 5,
       "label": "Title - Rider",
-      "notes": "Continuation page of Condominium Rider with form identifier \"Form 3140 07/2021\", section heading \"B. Property Insurance\", and printed numbering \"Page 2 of 3\". Connects physical PDF page 4 to physical PDF page 6.",
-      "page_number": 5
+      "confidence": null,
+      "notes": "Continuation of 'CONDOMINIUM RIDER' from page 4"
     },
     {
-      "confidence": null,
+      "page_number": 6,
       "label": "Title - Rider",
-      "notes": "Concluding page of Condominium Rider with form identifier \"Form 3140 07/2021\", borrower signature line, and printed numbering \"Page 3 of 3\", completing the document from physical PDF pages 4 and 5.",
-      "page_number": 6
+      "confidence": null,
+      "notes": "Continuation of 'CONDOMINIUM RIDER' from page 5"
     },
     {
-      "confidence": null,
+      "page_number": 7,
       "label": "Lender - Rate Note",
-      "notes": "Document titled \"NOTE\" with form identifier \"Form 3200 07/2021\", subtitle \"MULTISTATE FIXED RATE NOTE -- Single Family\", and printed numbering \"Page 1 of 4\". Forms a 4-page note with physical PDF pages 8, 9, and 10. Logical reading order follows physical PDF pages 7, 8, 10, then 9.",
-      "page_number": 7
+      "confidence": null,
+      "notes": "Title 'NOTE'"
     },
     {
-      "confidence": null,
+      "page_number": 8,
       "label": "Lender - Rate Note",
-      "notes": "Continuation page of fixed rate note with form identifier \"Form 3200 07/2021\", section heading \"5. LOAN CHARGES\", and printed numbering \"Page 2 of 4\". Precedes physical PDF page 10 in logical reading order.",
-      "page_number": 8
+      "confidence": null,
+      "notes": "Continuation of 'NOTE' from page 7"
     },
     {
-      "confidence": null,
+      "page_number": 9,
       "label": "Lender - Rate Note",
-      "notes": "Physical PDF page 9 contains printed \"Page 4 of 4\" with form identifier \"Form 3200 07/2021\" and assignment block \"PAY TO THE ORDER OF: WITHOUT RECOURSE\". It appears out of logical reading order before physical PDF page 10 (printed \"Page 3 of 4\"). Logical reading order is physical PDF page 7 (Page 1 of 4), physical PDF page 8 (Page 2 of 4), physical PDF page 10 (Page 3 of 4), then physical PDF page 9 (Page 4 of 4).",
-      "page_number": 9
+      "confidence": null,
+      "notes": "Continuation of 'NOTE' from page 8"
     },
     {
-      "confidence": null,
+      "page_number": 10,
       "label": "Lender - Rate Note",
-      "notes": "Physical PDF page 10 contains printed \"Page 3 of 4\" with form identifier \"Form 3200 07/2021\", section heading \"10. UNIFORM SECURED NOTE\", and borrower signature line. It appears out of logical reading order after physical PDF page 9 (printed \"Page 4 of 4\"). Logical reading order is physical PDF page 7 (Page 1 of 4), physical PDF page 8 (Page 2 of 4), physical PDF page 10 (Page 3 of 4), then physical PDF page 9 (Page 4 of 4).",
-      "page_number": 10
+      "confidence": null,
+      "notes": "Continuation of 'NOTE' from page 9"
     },
     {
-      "confidence": null,
+      "page_number": 11,
       "label": "Mortgage - Closing Disclosure - Seller",
-      "notes": "Document titled \"Closing Disclosure\" with section heading \"SELLER'S TRANSACTION\" and printed numbering \"PAGE 1 OF 2\". Footer shows \"CLOSING DISCLOSURE\". Forms a 2-page seller closing disclosure with physical PDF page 12.",
-      "page_number": 11
+      "confidence": null,
+      "notes": "Title 'Closing Disclosure'"
     },
     {
-      "confidence": null,
+      "page_number": 12,
       "label": "Mortgage - Closing Disclosure - Seller",
-      "notes": "Continuation page titled \"Closing Cost Details\" with section heading \"Seller-Paid\", footer \"CLOSING DISCLOSURE\", and printed numbering \"PAGE 2a OF 2\", completing the document started on physical PDF page 11.",
-      "page_number": 12
+      "confidence": null,
+      "notes": "Continuation of 'Closing Disclosure' from page 11"
     }
   ],
   "documents": [
@@ -114,7 +114,7 @@
   ],
   "loan_level_fields": {
     "borrower_name": {
-      "value": "Renard-Van Mercer, Alya",
+      "value": "Alya Renard-Van Mercer",
       "source_pages": [
         3,
         6,

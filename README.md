@@ -1,15 +1,26 @@
 # loancli
 
-A small Python CLI for classifying, extracting, and reconciling the
-provided 12-page loan package with Antigravity.
+A small Python CLI that classifies, extracts, and reconciles the provided
+12-page loan package using the official `google-genai` SDK.
 
-## Run
+## Setup and run
 
-Run from this project directory. Install [uv](https://docs.astral.sh/uv/)
-and authenticate `agy` first. `agy` must be on your `PATH`.
-Python uses Poppler's `pdftoppm` to render the PDF before the model calls;
-it must also be on your `PATH`. `uv run` installs the local CLI and its one runtime dependency,
-`jsonschema`.
+Install [uv](https://docs.astral.sh/uv/) and Poppler (`pdftoppm` must be on
+`PATH`). Run from this project directory:
+
+```sh
+uv sync
+```
+
+Create a local `.env` containing your key:
+
+```dotenv
+GEMINI_API_KEY=your-key-here
+```
+
+`.env` is ignored by Git. The worker reads the key privately from this
+file, without changing environment variables or saving it in prompts,
+request artifacts, or logs. An ambient API key is not used.
 
 ```sh
 uv run loancli classify --output runs/classify
@@ -21,19 +32,44 @@ uv run loancli extract \
 uv run loancli full --output runs/full
 ```
 
-`--classification` accepts clean classification JSON or a successful
-saved `agy` JSON envelope. Outputs must go into a new or empty directory;
-use a different directory for each rerun.
+`--classification` accepts clean classification JSON or a successful saved
+run envelope, including older agy envelopes. Use a new or empty output
+directory for a fresh run. To explicitly resume an interrupted run:
 
-All commands accept `--timeout SECONDS` (default: 300). The hard limit
-applies separately to each stage, including image preparation and the
-model call. For example, `uv run loancli full --output runs/full --timeout 180`
-allows up to 180 seconds per stage. On timeout or interruption, the
-runner terminates the process group, kills remaining children, cleans
-the temporary workspace, and preserves logs. Cleanup may take up to
-five additional seconds.
+```sh
+uv run loancli full --output runs/full --resume
 
-## What each command saves
+uv run loancli extract \
+  --classification runs/classify/classification.json \
+  --output runs/extract --resume
+```
+
+Resume requires the same command, PDF, prompts, schemas, classification
+input (for `extract`), and model/runner configuration as recorded in
+`run-manifest.json`. Completed classification and extraction groups are
+revalidated against their raw responses before reuse. Changed inputs or
+missing manifests fail before any model request. Older runs without a
+manifest cannot be resumed. The timeout may be changed on resume; each
+invocation receives a fresh stage deadline. API keys are excluded from
+the manifest.
+
+Classification makes one `generate_content` request to `gemma-4-26b-a4b-it`
+with minimal thinking. Extraction makes one request per logical document
+group from classification, using `gemini-3.1-flash-lite` with high thinking.
+Both use JSON response MIME type and API-configured `response_json_schema`.
+No tools are registered.
+HTTP 503 failures receive at most three retries per request, after 5, 10,
+and 20 seconds (four attempts total), using the same model and inputs.
+Each attempt and retry delay is shown in progress and saved in the JSONL
+log. Other errors, including unsupported configuration, fail immediately.
+There are no fallback models. The hard timeout can stop retries before
+the limit. Gemma's
+schema support was confirmed by the project owner; Google's
+[Flash-Lite documentation](https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite)
+confirms structured outputs and high thinking. Offline tests do not
+verify live service capabilities.
+
+## Outputs and timeouts
 
 | Command | Structured artifacts |
 | --- | --- |
@@ -41,89 +77,93 @@ five additional seconds.
 | `extract` | Supplied `classification.json` and new `extraction.json` observations |
 | `full` | Both stages, `reconciliation.json`, and final `result.json` |
 
-After successful reconciliation, `full` also atomically replaces the
-project root's `result.json` with the same bytes saved under `--output`.
-Failures leave the existing root result unchanged. `classify` and
-`extract` do not update it.
+After successful reconciliation, `full` atomically replaces the project
+root's `result.json` with the same bytes saved under `--output`. Failures
+leave the existing root result unchanged. `classify` and `extract` do not
+update it.
 
-Each model stage also saves its prompt and schema snapshots, raw
-`<stage>.stream.jsonl`, `<stage>.stderr.log`, `<stage>.render.log`, and terminal
-`<stage>-run.json`. Progress appears on stderr, including a heartbeat
-while waiting. Failures return a nonzero exit code and preserve the logs
-and completed artifacts. Ctrl-C stops the runner and preserves partial logs.
+Classification saves prompt and schema snapshots, `classification-run.json`,
+`classification.stream.jsonl`, `classification.stderr.log`, and
+`classification.render.log`. Each extraction group saves the corresponding
+`extraction.*` files and raw `extraction-run.json` under
+`groups/document-01/`, `groups/document-02/`, and so on. Group schemas
+restrict page numbers and entry counts to that group's physical pages.
+
+After every group succeeds, Python merges observations into
+`extraction.json` in physical page order using the existing full-package
+schema. The top-level `extraction-run.json` records the successful group
+artifacts and merged output. A failed group stops processing; completed
+groups and the failing group's logs remain, and no merged extraction or
+final result is published. Explicit resume reuses completed groups and
+starts the failed group's request again with its bounded retry allowance.
+Only complete extraction can reach reconciliation and final publication.
+
+The JSONL log contains request lifecycle events, returned response text,
+and the final result; it is not a token stream. Hidden thinking is not
+saved. Progress, heartbeats, and stage durations appear on stderr.
+Logs are appended on resume, with invocation markers distinguishing
+attempts from different invocations; earlier response text and errors remain.
+
+All commands accept `--timeout SECONDS` (default: 300), separately for each
+stage, including image preparation and the model calls. The extraction
+stage shares this deadline across all groups; it does not reset per group.
+Python runs the SDK call in a separate process. Timeout or Ctrl-C terminates its process
+group and remaining children, preserves logs, and cleans temporary files.
+Cleanup can take up to five additional seconds. Failures return a nonzero
+exit code and retain completed artifacts.
 
 ## Processing rules
 
-The CLI reads `classification.prompt.txt` and `extraction.prompt.txt`
-from `prompts/`, and their schemas from `schemas/` for validation and
-stage inputs. Each call creates a unique `.temp/<run-id>/<stage>/`
-working directory. In `full`, Python renders the PDF once at 300 DPI in
-a shared disposable preparation directory and copies the same images
-into each stage's separate workspace. Standalone commands render their
-own images. Python copies
-the 12 page images, schema, effective prompt, and required stage inputs into it,
-using regular copies rather than symlinks. The effective prompt directs
-the model to inspect those images instead of finding or rendering a PDF.
-Extraction receives classification labels and groups; classification
-notes and former extraction results are excluded. Python also prepares
-three full-width views from the rendered image pixels, without rendering
-PDF regions again: top 0–40%, middle 30–70%,
-and bottom 60–100%. These overlapping views retain 300 DPI source detail
-without resampling and let the model inspect unclear text at a larger
-display size. Their fixed names are `page_views/page-01-top.png`,
-`page-01-middle.png`, and `page-01-bottom.png`, through page 12.
-The model uses these supplied views without creating crops or running
-image-processing commands. If text remains unreadable, null values and
-uncertainty notes remain valid intermediate observations and receive
-no document votes. Stage workspaces and shared preparation files
-are removed on success or failure; logs and results stay
-under `--output`.
+Prompts are read from `prompts/`; schemas from `schemas/` configure the API
+response and validate it locally. Python renders the PDF at 300 DPI. In
+`full`, it renders once in a shared disposable directory and reuses those
+images for both stages. Standalone commands render their own images.
+Each stage uses a separate `.temp/<run-id>/<stage>/` directory with regular
+image copies. Shared and stage preparation files are removed on success
+or failure.
 
-Each call launches a fresh `agy` process with `--new-project --sandbox
---disable-slash-commands`. It does not resume conversations or add
-workspace directories. The streamed `init.cwd` must match the stage
-directory before the output is accepted. Global `agy` settings are left
-unchanged. Inherited settings may permit outside access: this is a clean
-workspace, not guaranteed filesystem isolation.
+Classification receives all 12 full-page images together as Pillow objects,
+preceded by physical page-number labels. Each extraction request receives
+only its group's full-page images, classification labels and group context,
+and three prepared views per page: top 0–40%, middle 30–70%, and bottom
+60–100%.
+Pillow crops these overlapping bands from the same rendered images,
+without resampling or rendering PDF regions again. Extraction gets inline
+classification labels and groups, excluding classification notes and
+previous extraction results. No agy settings, skills, or conversations are
+loaded; global coding configuration remains unchanged.
 
-On macOS, loancli additionally launches agy inside a per-process
-`sandbox-exec` profile that blocks reads of `~/.gemini/config/skills/`,
-`~/.agents/skills/`, and the Octapowers router in `~/.gemini/GEMINI.md`.
-This keeps global coding skills out of loan processing without editing
-or renaming shared files; ordinary coding sessions retain their setup.
-Other inherited settings remain active. This isolation currently requires
-macOS; `sandbox-exec` is deprecated by Apple but remains available and is
-also used by agy's macOS terminal sandbox.
-
-Every run uses `gemini-3.8-flash-low` and
-[`agy --output-format stream-json`](https://antigravity.google/docs/cli/headless/).
-Only the terminal `result.structured_output` is accepted. Schema checks,
-complete physical page coverage, group consistency, field statuses, and
-required supporting evidence are validated before publishing clean outputs.
-These checks cannot prove that a quotation matches the rendered image;
-visual verification remains necessary when evaluating model accuracy.
+Both prompts require direct reading of visible evidence. Unreadable text
+remains valid intermediate uncertainty, with null values and explanatory
+notes. Structural checks enforce complete physical page coverage, group
+consistency, field statuses, and supporting evidence. They cannot prove
+that a quotation matches the image; evaluating model accuracy still
+requires visual verification. Whole-package extraction accuracy is not
+established by the preliminary group tests.
 
 Reconciliation normalizes whitespace, capitalization, unambiguous
 surname–given-name ordering, and address separator commas. It preserves
 spelling, digits, leading zeros, hyphens, and internal word-spacing
 differences. Each logical document contributes at most one vote per
 candidate; a document may support competing candidates once each.
-All original observations, alternatives, source pages, and selection
-rationale remain in the intermediate artifacts.
+Original observations, alternatives, source pages, and selection rationale
+remain in intermediate artifacts.
 
-The unique candidate with the most document votes wins. An exact tie
-is recorded in `reconciliation.json` and reported as a failure; no final
-`result.json` is written because a tie selection rule is still undecided.
-If a field has no readable candidate, its final value is empty and its
-source pages are empty, with the uncertainty retained in reconciliation.
+The unique candidate with the most document votes wins. An exact tie is
+saved in `reconciliation.json` and fails the run without a final result:
+a tie selection rule remains undecided. If a field has no readable
+candidate, its final value and source pages are empty, with uncertainty
+retained in reconciliation.
 
-## Test without model calls
+## Offline tests
 
 ```sh
-uv run python -m unittest discover -s tests -v
+uv run --offline python -m unittest discover -s tests -v
 ```
 
-Tests use the accepted saved results and a fake `agy` executable. They
-exercise validation, streaming failures, document voting, ties, and all
-three commands, including timeout cleanup and fixed views, without
-launching a model. Most tests also use a fake renderer; one uses real Poppler.
+Tests mock the SDK client and use accepted saved results. They cover all
+three commands, one extraction request per group, single rendering in full mode,
+fixed views, group coverage and failure preservation, merging, document
+voting, ties, bounded 503 retries, resume compatibility checks, secret redaction, timeout
+cleanup, and atomic publication. Most tests use a fake renderer; one uses
+real Poppler. No model calls are made.
