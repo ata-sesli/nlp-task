@@ -1,2 +1,7 @@
 classification-runs/
 extraction-runs/
+.venv/
+__pycache__/
+*.egg-info/
+runs/
+.temp/
